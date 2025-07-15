@@ -1,0 +1,16 @@
+{
+    "spam": {
+        "description": "Модуль для спама сообщениями с настройкой задержки",
+        "version": "2.2",
+        "keywords": ["спам", "рассылка", "флуд"],
+        "commands": ["spam"],
+        "file": "spam.py"
+    },
+    "info": {
+        "description": "Модуль для получения информации о пользователях и чатах",
+        "version": "1.5",
+        "keywords": ["информация", "данные", "userinfo"],
+        "commands": ["info", "userinfo"],
+        "file": "info.py"
+    }
+}
