@@ -44,7 +44,7 @@
     "LuniAI": {
         "description": "Неройсеть Luni использующая DeepSeekAI.",
         "version": "2.0",
-        "keywords": ["ai", "нейро", "gpt", "chatgpt", "чатгпт", "поиск", "нейросеть"],
+        "keywords": ["ai", "нейро", "gpt", "chatgpt", "чат гпт", "поиск", "нейросеть"],
         "commands": ["luni - Спросить у Luni AI"],
         "file": "LuniAI.py"
     }
