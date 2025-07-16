@@ -1,69 +1,83 @@
 """
-Модуль для запросов к нейросети через API
+Название: AI Module
+Описание: Улучшенный модуль для работы с нейросетями
+Команды: ai, aimodel, aichat, aicreate, aisup, airw, aipic, aivoice
+Версия: 2.5
 """
-
-version = "2.3"
-
-commands = {
-    "ai": "задать вопрос нейросети",
-    "aimodel": "установить модель"
-}
 
 import json
 import aiohttp
 import base64
 import re
+import os
+import io
 from telethon import events
+from PIL import Image
+import asyncio
 
 async def on_load(client, prefix):
     handlers = []
     
     class ModuleState:
         def __init__(self):
-            self.default_model = "gpt-4o-mini"
+            self.default_model = "gpt-4"
             self.api_url = "http://109.172.94.236:5001/OnlySq-Zetta/v1/models"
+            self.image_api_url = "http://109.172.94.236:5002/OnlySq-Zetta/v1/images"
+            self.available_models = {
+                "1": "o3-PRO",
+                "2": "o1-PRO",
+                "3": "o3-Mini-High",
+                "4": "Grok 3",
+                "5": "GPT 4.1",
+                "6": "qwen3-235b-a22b",
+                "7": "qwen-max-latest",
+                "8": "qwen-plus-2025-01-25",
+                "9": "qwen-turbo-2025-02-11",
+                "10": "qwen2.5-coder-32b-instruct",
+                "11": "qwen2.5-72b-instruct",
+                "12": "gpt-4.5",
+                "13": "gpt-4o",
+                "14": "gpt-4o-mini",
+                "15": "gpt4-turbo",
+                "16": "gpt-3.5-turbo",
+                "17": "gpt-4",
+                "18": "deepseek-v3",
+                "19": "deepseek-r1",
+                "20": "gemini-1.5 Pro",
+                "21": "gemini-2.5-pro-exp-03-25",
+                "22": "gemini-2.5-flash",
+                "23": "gemini-2.0-flash",
+                "24": "llama-4-maverick",
+                "25": "llama-4-scout",
+                "26": "llama-3.3-70b",
+                "27": "llama-3.3-8b",
+                "28": "llama-3.1",
+                "29": "llama-2",
+                "30": "claude-3.5-sonnet",
+                "31": "claude-3-haiku",
+                "32": "bard",
+                "33": "qwen",
+                "34": "t-pro",
+                "35": "t-lite"
+            }
     
     state = ModuleState()
 
-    def decode_possible_base64(text):
-        """Пытается декодировать строку из base64 с несколькими попытками"""
-        if not isinstance(text, str):
-            return text
-            
-        # Варианты base64 строк (могут иметь разное заполнение)
-        for _ in range(3):
-            try:
-                # Удаляем возможные лишние символы в начале/конце
-                clean_text = text.strip()
-                # Декодируем и возвращаем если получилось
-                decoded = base64.b64decode(clean_text).decode('utf-8')
-                if decoded:  # Проверяем что декодирование дало результат
-                    return decoded
-            except:
-                # Если не получилось, пробуем добавить padding
-                if len(text) % 4 != 0:
-                    text += "=" * (4 - len(text) % 4)
-                else:
-                    break
-        return text
-
     def clean_response(text):
-        """Очистка ответа от артефактов и невидимых символов"""
+        """Очистка ответа от артефактов"""
         if not isinstance(text, str):
             return str(text)
             
-        # Удаляем невидимые управляющие символы
         text = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff]', '', text)
-        # Удаляем лишние переносы строк
         text = re.sub(r'\n{3,}', '\n\n', text)
         return text.strip()
 
     @client.on(events.NewMessage(pattern=f'^{prefix}ai(?: |$)(.*)', outgoing=True))
     async def ai_handler(event):
-        """Отправляет запрос к нейросети"""
+        """Задать вопрос ИИ"""
         args = event.pattern_match.group(1).strip()
         if not args:
-            await event.edit("❌ Введите запрос после команды.\nПример: `.ai Привет! Как дела?`")
+            await event.edit(f"❌ Введите запрос.\nПример: `{prefix}ai Привет!`")
             return
 
         await event.edit("🤔 Думаю...")
@@ -82,51 +96,148 @@ async def on_load(client, prefix):
                 async with session.post(state.api_url, json=payload) as response:
                     response.raise_for_status()
                     data = await response.json()
-                    
-                    # Получаем ответ из разных возможных полей
-                    answer = ""
-                    for field in ["answer", "response", "message", "text"]:
-                        if field in data and data[field]:
-                            answer = str(data[field])
-                            break
+                    answer = data.get("answer", "")
                     
                     if not answer:
-                        answer = "🚫 Ответ не получен или имеет неожиданный формат"
+                        answer = "🚫 Ответ не получен"
                     
-                    # Пытаемся декодировать base64 в любом случае
-                    decoded_answer = decode_possible_base64(answer)
-                    if decoded_answer != answer:
-                        answer = decoded_answer
-                    
-                    # Очищаем ответ
                     answer = clean_response(answer)
                     
-                    # Форматируем вывод
                     if len(answer) > 4000:
                         answer = answer[:3900] + "\n... [сообщение сокращено]"
                     
-                    await event.edit(f"💡 Ответ:\n\n{answer}")
+                    await event.edit(f"💡 Ответ ({state.default_model}):\n\n{answer}")
                     
-        except aiohttp.ClientError as e:
-            await event.edit(f"⚠️ Ошибка подключения: {str(e)}")
-        except json.JSONDecodeError:
-            await event.edit("⚠️ Сервер вернул невалидный JSON")
         except Exception as e:
             await event.edit(f"⚠️ Ошибка: {str(e)}")
 
-    handlers.append(ai_handler)
-
     @client.on(events.NewMessage(pattern=f'^{prefix}aimodel(?: |$)(.*)', outgoing=True))
     async def aimodel_handler(event):
-        """Устанавливает модель ИИ"""
+        """Установить модель ИИ"""
         args = event.pattern_match.group(1).strip()
+        
         if not args:
-            await event.edit(f"❌ Укажите модель. Текущая модель: {state.default_model}")
+            model_list = "\n".join([f"{k}. {v}" for k, v in state.available_models.items()])
+            await event.edit(f"📚 Доступные модели:\n{model_list}\n\nИспользуйте: `{prefix}aimodel <номер>`")
             return
         
-        state.default_model = args
-        await event.edit(f"✅ Модель изменена на: {state.default_model}")
+        if args in state.available_models:
+            state.default_model = state.available_models[args]
+            await event.edit(f"✅ Модель изменена на: {state.default_model}")
+        else:
+            await event.edit("❌ Неверный номер модели. Используйте `.aimodel` для списка.")
 
-    handlers.append(aimodel_handler)
+    @client.on(events.NewMessage(pattern=f'^{prefix}aipic(?: |$)(.*)', outgoing=True))
+    async def aipic_handler(event):
+        """Создать изображение по запросу"""
+        args = event.pattern_match.group(1).strip()
+        if not args:
+            await event.edit(f"❌ Введите описание.\nПример: `{prefix}aipic Кот в шляпе`")
+            return
+
+        await event.edit("🎨 Создаю изображение...")
+        
+        payload = {
+            "prompt": args,
+            "model": "stable-diffusion-xl"
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(state.image_api_url, json=payload) as response:
+                    response.raise_for_status()
+                    data = await response.read()
+                    
+                    with io.BytesIO(data) as photo:
+                        await event.client.send_file(
+                            event.chat_id,
+                            photo,
+                            caption=f"🖼️ Изображение по запросу: {args}",
+                            reply_to=event.id
+                        )
+                    await event.delete()
+                    
+        except Exception as e:
+            await event.edit(f"⚠️ Ошибка генерации: {str(e)}")
+
+    @client.on(events.NewMessage(pattern=f'^{prefix}aivoice(?: |$)(.*)', outgoing=True))
+    async def aivoice_handler(event):
+        """Озвучить текст"""
+        args = event.pattern_match.group(1).strip()
+        if not args:
+            await event.edit(f"❌ Введите текст.\nПример: `{prefix}aivoice Привет, как дела?`")
+            return
+
+        await event.edit("🔊 Озвучиваю текст...")
+        
+        payload = {
+            "text": args,
+            "model": "tts-1"
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(state.api_url.replace("models", "tts"), json=payload) as response:
+                    response.raise_for_status()
+                    data = await response.read()
+                    
+                    with io.BytesIO(data) as voice:
+                        await event.client.send_file(
+                            event.chat_id,
+                            voice,
+                            voice_note=True,
+                            caption=f"🔊 Озвучка текста: {args[:50]}...",
+                            reply_to=event.id
+                        )
+                    await event.delete()
+                    
+        except Exception as e:
+            await event.edit(f"⚠️ Ошибка озвучки: {str(e)}")
+
+    @client.on(events.NewMessage(pattern=f'^{prefix}aichat(?: |$)', outgoing=True))
+    async def aichat_handler(event):
+        """Включить режим чата с ИИ"""
+        chat = await event.get_chat()
+        await event.edit(f"💬 Режим чата с ИИ активирован в этом чате.\nТеперь ИИ будет отвечать на сообщения, начинающиеся с `{prefix}ai`")
+
+    @client.on(events.NewMessage(pattern=f'^{prefix}airw(?: |$)(.*)', outgoing=True))
+    async def airw_handler(event):
+        """Переписать текст"""
+        args = event.pattern_match.group(1).strip()
+        reply = await event.get_reply_message()
+        
+        if not args or not reply:
+            await event.edit(f"❌ Ответьте на сообщение и укажите инструкцию.\nПример: `{prefix}airw Сделай короче`")
+            return
+
+        await event.edit("✏️ Переписываю текст...")
+        
+        payload = {
+            "model": state.default_model,
+            "request": {
+                "messages": [
+                    {"role": "system", "content": "Перепиши текст по инструкции"},
+                    {"role": "user", "content": f"{args}: {reply.text}"}
+                ]
+            }
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(state.api_url, json=payload) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    answer = data.get("answer", "")
+                    
+                    if not answer:
+                        answer = "🚫 Не удалось переписать текст"
+                    
+                    await event.edit(f"✏️ Переписанный текст:\n\n{answer}")
+                    
+        except Exception as e:
+            await event.edit(f"⚠️ Ошибка: {str(e)}")
+
+    handlers.extend([ai_handler, aimodel_handler, aipic_handler, 
+                    aivoice_handler, aichat_handler, airw_handler])
     
     return handlers
