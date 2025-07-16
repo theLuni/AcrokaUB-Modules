@@ -41,11 +41,11 @@
         "commands": ["weather - Получить текущую погоду для указанного города", "wset - Установить город по умолчанию и настройки", "forecast - Получить прогноз погоды на 5 дней"],
         "file": "weather.py"
     },
-    "LuniAI": {
-        "description": "Неройсеть Luni использующая DeepSeekAI.",
-        "version": "2.0",
+    "AI": {
+        "description": "Модуль для запросов к нейросети",
+        "version": "2.3",
         "keywords": ["ai", "нейро", "gpt", "chatgpt", "чат гпт", "поиск", "нейросеть", "all"],
-        "commands": ["luni - Спросить у Luni AI"],
-        "file": "LuniAI.py"
+        "commands": ["ai - Спросить у AI"],
+        "file": "AI.py"
     }
 }
