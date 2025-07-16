@@ -11,12 +11,12 @@ commands = {
 import json
 import aiohttp
 import base64
+import re
 from telethon import events
 
 async def on_load(client, prefix):
     handlers = []
     
-    # Инициализация параметров модуля
     class ModuleState:
         def __init__(self):
             self.default_model = "gpt-4o-mini"
@@ -24,10 +24,27 @@ async def on_load(client, prefix):
     
     state = ModuleState()
 
-    # Команда .ai
+    def clean_response(text):
+        """Очистка ответа от лишних символов и декодирование"""
+        # Попытка декодировать base64 если строка выглядит закодированной
+        if isinstance(text, str):
+            # Проверка на base64 (примерный паттерн)
+            base64_pattern = r"^[A-Za-z0-9+/]+={0,2}$"
+            if re.fullmatch(base64_pattern, text):
+                try:
+                    decoded = base64.b64decode(text).decode('utf-8')
+                    return decoded
+                except:
+                    pass
+            
+            # Удаление невидимых Unicode-символов
+            text = re.sub(r'[\u200b-\u200f\u202a-\u202e]', '', text)
+            
+        return text.strip()
+
     @client.on(events.NewMessage(pattern=f'^{prefix}ai(?: |$)(.*)', outgoing=True))
     async def ai_handler(event):
-        """Отправляет запрос к нейросети. Использование: .ai <запрос>"""
+        """Отправляет запрос к нейросети"""
         args = event.pattern_match.group(1).strip()
         if not args:
             await event.edit("❌ Введите запрос после команды.\nПример: `.ai Привет! Как дела?`")
@@ -50,37 +67,33 @@ async def on_load(client, prefix):
                     response.raise_for_status()
                     data = await response.json()
                     
-                    # Улучшенная обработка ответа
-                    answer = data.get("answer", "")
+                    # Получаем ответ из разных возможных полей
+                    answer = data.get("answer") or data.get("response") or data.get("message") or ""
+                    
+                    # Очищаем ответ
+                    answer = clean_response(answer)
+                    
                     if not answer:
-                        answer = data.get("response", "🚫 Ответ не получен или имеет неожиданный формат")
+                        answer = "🚫 Ответ не получен или имеет неожиданный формат"
                     
-                    # Попытка декодировать base64 если ответ выглядит закодированным
-                    if isinstance(answer, str) and "=" in answer and len(answer) % 4 == 0:
-                        try:
-                            answer = base64.b64decode(answer).decode('utf-8')
-                        except:
-                            pass
-                    
-                    # Ограничение длины сообщения для Telegram
+                    # Ограничение длины и форматирование
                     if len(answer) > 4000:
-                        answer = answer[:4000] + "... [сообщение сокращено]"
+                        answer = answer[:3900] + "\n... [сообщение сокращено]"
                     
-                    await event.edit(f"💡 Ответ:\n{answer}")
+                    await event.edit(f"💡 Ответ:\n\n{answer}")
                     
         except aiohttp.ClientError as e:
-            await event.edit(f"⚠️ Ошибка подключения к API: {str(e)}")
+            await event.edit(f"⚠️ Ошибка подключения: {str(e)}")
         except json.JSONDecodeError:
-            await event.edit("⚠️ Ошибка: сервер вернул невалидный JSON")
+            await event.edit("⚠️ Сервер вернул невалидный JSON")
         except Exception as e:
-            await event.edit(f"⚠️ Неожиданная ошибка: {str(e)}")
+            await event.edit(f"⚠️ Ошибка: {str(e)}")
 
     handlers.append(ai_handler)
 
-    # Команда .aimodel
     @client.on(events.NewMessage(pattern=f'^{prefix}aimodel(?: |$)(.*)', outgoing=True))
     async def aimodel_handler(event):
-        """Устанавливает модель ИИ. Использование: .aimodel <название>"""
+        """Устанавливает модель ИИ"""
         args = event.pattern_match.group(1).strip()
         if not args:
             await event.edit(f"❌ Укажите модель. Текущая модель: {state.default_model}")
