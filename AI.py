@@ -8,6 +8,7 @@ commands = {
     "ai": "задать вопрос нейросети",
     "aimodel": "установить модель"
 }
+
 import json
 import aiohttp
 import base64
@@ -24,22 +25,37 @@ async def on_load(client, prefix):
     
     state = ModuleState()
 
-    def clean_response(text):
-        """Очистка ответа от лишних символов и декодирование"""
-        # Попытка декодировать base64 если строка выглядит закодированной
-        if isinstance(text, str):
-            # Проверка на base64 (примерный паттерн)
-            base64_pattern = r"^[A-Za-z0-9+/]+={0,2}$"
-            if re.fullmatch(base64_pattern, text):
-                try:
-                    decoded = base64.b64decode(text).decode('utf-8')
+    def decode_possible_base64(text):
+        """Пытается декодировать строку из base64 с несколькими попытками"""
+        if not isinstance(text, str):
+            return text
+            
+        # Варианты base64 строк (могут иметь разное заполнение)
+        for _ in range(3):
+            try:
+                # Удаляем возможные лишние символы в начале/конце
+                clean_text = text.strip()
+                # Декодируем и возвращаем если получилось
+                decoded = base64.b64decode(clean_text).decode('utf-8')
+                if decoded:  # Проверяем что декодирование дало результат
                     return decoded
-                except:
-                    pass
+            except:
+                # Если не получилось, пробуем добавить padding
+                if len(text) % 4 != 0:
+                    text += "=" * (4 - len(text) % 4)
+                else:
+                    break
+        return text
+
+    def clean_response(text):
+        """Очистка ответа от артефактов и невидимых символов"""
+        if not isinstance(text, str):
+            return str(text)
             
-            # Удаление невидимых Unicode-символов
-            text = re.sub(r'[\u200b-\u200f\u202a-\u202e]', '', text)
-            
+        # Удаляем невидимые управляющие символы
+        text = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff]', '', text)
+        # Удаляем лишние переносы строк
+        text = re.sub(r'\n{3,}', '\n\n', text)
         return text.strip()
 
     @client.on(events.NewMessage(pattern=f'^{prefix}ai(?: |$)(.*)', outgoing=True))
@@ -68,15 +84,24 @@ async def on_load(client, prefix):
                     data = await response.json()
                     
                     # Получаем ответ из разных возможных полей
-                    answer = data.get("answer") or data.get("response") or data.get("message") or ""
-                    
-                    # Очищаем ответ
-                    answer = clean_response(answer)
+                    answer = ""
+                    for field in ["answer", "response", "message", "text"]:
+                        if field in data and data[field]:
+                            answer = str(data[field])
+                            break
                     
                     if not answer:
                         answer = "🚫 Ответ не получен или имеет неожиданный формат"
                     
-                    # Ограничение длины и форматирование
+                    # Пытаемся декодировать base64 в любом случае
+                    decoded_answer = decode_possible_base64(answer)
+                    if decoded_answer != answer:
+                        answer = decoded_answer
+                    
+                    # Очищаем ответ
+                    answer = clean_response(answer)
+                    
+                    # Форматируем вывод
                     if len(answer) > 4000:
                         answer = answer[:3900] + "\n... [сообщение сокращено]"
                     
