@@ -31,7 +31,7 @@ weather_db = WeatherDB()
 async def on_load(client, prefix):
     handlers = []
     
-    @client.on(events.NewMessage(pattern=f'^{prefix}wset(?:\s+(.+))?$'))
+    @client.on(events.NewMessage(pattern=f'^{prefix}wset(?:\\s+(.+))?$'))
     async def set_city_handler(event):
         """Установить город по умолчанию и настройки"""
         args = event.pattern_match.group(1)
@@ -62,7 +62,7 @@ async def on_load(client, prefix):
         )
     handlers.append(set_city_handler)
     
-    @client.on(events.NewMessage(pattern=f'^{prefix}weather(?:\s+(.+))?$'))
+    @client.on(events.NewMessage(pattern=f'^{prefix}weather(?:\\s+(.+))?$'))
     async def weather_handler(event):
         """Получить текущую погоду"""
         city = event.pattern_match.group(1) or weather_db.default_city
@@ -105,7 +105,7 @@ async def on_load(client, prefix):
             await event.edit("❌ Ошибка при получении данных о погоде")
     handlers.append(weather_handler)
     
-    @client.on(events.NewMessage(pattern=f'^{prefix}forecast(?:\s+(.+))?$'))
+    @client.on(events.NewMessage(pattern=f'^{prefix}forecast(?:\\s+(.+))?$'))
     async def forecast_handler(event):
         """Прогноз погоды на 5 дней"""
         city = event.pattern_match.group(1) or weather_db.default_city
