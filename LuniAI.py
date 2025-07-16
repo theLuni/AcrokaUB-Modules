@@ -63,7 +63,7 @@ async def on_load(client, prefix):
 
     luni = LuniAI(client)
 
-    @client.on(events.NewMessage(pattern='^' + re.escape(prefix) + 'luni(?:\s+|$)(.*)', outgoing=True))
+    @client.on(events.NewMessage(pattern='^' + re.escape(prefix) + 'luni(?:\\s+|$)(.*)', outgoing=True))
     async def luni_handler(event):
         """Обработчик команды .luni"""
         try:
