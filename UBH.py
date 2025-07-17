@@ -176,6 +176,11 @@ async def on_load(client, prefix):
                         continue
                         
                     raw_text = msg.text
+                    await state.detailed_log(
+                        f"📥 <b>ПОЛУЧЕНО СООБЩЕНИЕ:</b>\n"
+                        f"<code>{raw_text}</code>\n"
+                        "🔍 <i>Анализирую...</i>"
+                    )
                     
                     if "слишком много" in raw_text.lower():
                         await state.detailed_log(
@@ -189,10 +194,11 @@ async def on_load(client, prefix):
                     
                     if "не хватает $" in raw_text.lower() or "недостаточно средств" in raw_text.lower():
                         state.money_error = True
+                        # Удаляем 3 последних сообщения от бота
                         try:
                             messages_to_delete = await client.get_messages(CONFIG['bot_username'], limit=3)
                             for msg_to_delete in messages_to_delete:
-                                if not msg_to_delete.out:
+                                if not msg_to_delete.out:  # Удаляем только сообщения от бота (не исходящие)
                                     await msg_to_delete.delete()
                         except Exception as delete_error:
                             await log_to_file(f"Ошибка при удалении сообщений: {str(delete_error)}")
@@ -216,6 +222,10 @@ async def on_load(client, prefix):
                         
                     lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
                     if len(lines) < 3:
+                        await state.detailed_log(
+                            "❌ <b>ОШИБКА ФОРМАТА:</b> Недостаточно строк в сообщении",
+                            force=True
+                        )
                         continue
                         
                     item_info = {}
@@ -232,9 +242,19 @@ async def on_load(client, prefix):
                                 item_info['class'] = line.split("Класс офиса:")[1].replace("**", "").strip()
                     
                     if not item_info.get('name') or not item_info.get('class'):
+                        await state.detailed_log(
+                            f"❌ <b>ОШИБКА ФОРМАТА:</b> Не удалось извлечь данные о {CONFIG['type']}е",
+                            force=True
+                        )
                         continue
                         
-                    state.attempts += 1
+                    await state.detailed_log(
+                        f"🔎 <b>ПОПЫТКА #{state.attempts}</b>\n"
+                        f"🏷️ <b>Название:</b> <code>{item_info['name']}</code>\n"
+                        f"🏆 <b>Класс:</b> <code>{item_info['class']}</code>\n"
+                        f"🎯 <b>Цель:</b> <code>{CONFIG['target_class']}</code>\n"
+                        "▫️▫️▫️▫️▫️▫️▫️▫️▫️"
+                    )
                     
                     if item_info['class'].lower() == CONFIG['target_class'].lower():
                         state.found = True
@@ -264,6 +284,7 @@ async def on_load(client, prefix):
 
         try:
             while not state.found and not state.money_error and not ACTIVE_SEARCH["stop_requested"]:
+                state.attempts += 1  # Увеличиваем счетчик попыток только здесь
                 send_msg = f"🔄 <b>ПОПЫТОК:</b> <code>{state.attempts}</code>"
                 await state.detailed_log(send_msg, force=True)
 
@@ -273,7 +294,6 @@ async def on_load(client, prefix):
                 if await analyze_response():
                     break
                     
-                state.attempts += 1
                 await asyncio.sleep(CONFIG['delay'])
                 
             if ACTIVE_SEARCH["stop_requested"]:
