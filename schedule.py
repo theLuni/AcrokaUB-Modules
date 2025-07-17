@@ -3,7 +3,7 @@
 """
 version = "4.2"
 commands = {
-    "sch <кол-во> <период> <текст> - запланировать сообщения"
+    "sch <кол-во> <период> <текст>": "- запланировать сообщения"
 }    
 from telethon import events
 from datetime import datetime, timedelta
