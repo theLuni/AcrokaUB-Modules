@@ -7,7 +7,7 @@ version = "1.2"
 commands = {
     "ai": "отправить запрос нейросети",
     "aimodel": "установить модель"
-
+}
 import json
 import aiohttp
 import base64
