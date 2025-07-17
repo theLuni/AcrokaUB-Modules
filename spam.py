@@ -4,7 +4,7 @@
 """
 version = "2.2"
 commands = {
-    "spam <кол-во> <текст/реплай> - отправить спам"
+    "spam <кол-во> <текст/реплай>": "отправить спам"
 }    
 from telethon import events
 import asyncio
