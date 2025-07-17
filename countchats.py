@@ -3,7 +3,7 @@
 """
 version = "3.2"
 commands = {
-    "countchats - начать подсчет чатов"
+    "countchats": "- начать подсчет чатов"
 }    
 from telethon import events
 import time
