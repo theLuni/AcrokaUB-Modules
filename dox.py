@@ -3,7 +3,7 @@
 """
 version = "2.1"
 commands = {
-    "dox | докс - начать пробив"
+    "dox": "докс - начать пробив"
 }
 import random
 from telethon import events
