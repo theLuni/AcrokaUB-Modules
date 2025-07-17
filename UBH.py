@@ -235,13 +235,6 @@ async def on_load(client, prefix):
                         continue
                         
                     state.attempts += 1
-                    await state.detailed_log(
-                        f"🔎 <b>ПОПЫТКА #{state.attempts}</b>\n"
-                        f"🏷️ <b>Название:</b> <code>{item_info['name']}</code>\n"
-                        f"🏆 <b>Класс:</b> <code>{item_info['class']}</code>\n"
-                        f"🎯 <b>Цель:</b> <code>{CONFIG['target_class']}</code>\n"
-                        "▫️▫️▫️▫️▫️▫️▫️▫️▫️"
-                    )
                     
                     if item_info['class'].lower() == CONFIG['target_class'].lower():
                         state.found = True
