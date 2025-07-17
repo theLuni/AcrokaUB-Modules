@@ -176,11 +176,6 @@ async def on_load(client, prefix):
                         continue
                         
                     raw_text = msg.text
-                    await state.detailed_log(
-                        f"📥 <b>ПОЛУЧЕНО СООБЩЕНИЕ:</b>\n"
-                        f"<code>{raw_text}</code>\n"
-                        "🔍 <i>Анализирую...</i>"
-                    )
                     
                     if "слишком много" in raw_text.lower():
                         await state.detailed_log(
@@ -194,11 +189,10 @@ async def on_load(client, prefix):
                     
                     if "не хватает $" in raw_text.lower() or "недостаточно средств" in raw_text.lower():
                         state.money_error = True
-                        # Удаляем 3 последних сообщения от бота
                         try:
                             messages_to_delete = await client.get_messages(CONFIG['bot_username'], limit=3)
                             for msg_to_delete in messages_to_delete:
-                                if not msg_to_delete.out:  # Удаляем только сообщения от бота (не исходящие)
+                                if not msg_to_delete.out:
                                     await msg_to_delete.delete()
                         except Exception as delete_error:
                             await log_to_file(f"Ошибка при удалении сообщений: {str(delete_error)}")
@@ -222,10 +216,6 @@ async def on_load(client, prefix):
                         
                     lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
                     if len(lines) < 3:
-                        await state.detailed_log(
-                            "❌ <b>ОШИБКА ФОРМАТА:</b> Недостаточно строк в сообщении",
-                            force=True
-                        )
                         continue
                         
                     item_info = {}
@@ -242,10 +232,6 @@ async def on_load(client, prefix):
                                 item_info['class'] = line.split("Класс офиса:")[1].replace("**", "").strip()
                     
                     if not item_info.get('name') or not item_info.get('class'):
-                        await state.detailed_log(
-                            f"❌ <b>ОШИБКА ФОРМАТА:</b> Не удалось извлечь данные о {CONFIG['type']}е",
-                            force=True
-                        )
                         continue
                         
                     state.attempts += 1
