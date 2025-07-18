@@ -68,6 +68,13 @@
         "keywords": ["яндекс", "музыка", "трек", "yandex", "music", "all"],
         "commands": ["settoken - установить ЯндексТокен, ym - текущий трек (аудио), ymb - текущий трек (баннер), ylike - поставить лайк, ydislike - поставить дизлайк"],
         "file": "YaMusic.py"     
-    }
+    },
+    "HitmoDLD": {
+        "description": "Модуль для работы с Hitmo. Скачивание музыки",
+        "version": "2.4",
+        "keywords": ["хитмо", "музыка", "трек", "hitmo", "music", "all"],
+        "commands": ["hitmo - айти и скачать музыку"],
+        "file": "HitmoDLD.py"     
+    }    
         
 }
